@@ -50,61 +50,7 @@ def endFeelDuro(portHandler, packetHandler, id, angle, activo):
                 isFinished = moveIsFinished(portHandler, packetHandler, id, rawToAngle(defaultPosByID), DXL_MOVING_STATUS_THRESHOLD)
 
 
-            
-def endFeelBlando(portHandler, packetHandler, id, angle, activo):
-    angleAdapted = adaptAngleToId(id, angle)
-    defaultPosByID = getDefaultPosById(id)
-
-    if (angleAdaptedIsValid(angleAdapted, portHandler, packetHandler, id) and defaultPosByID != 0):   
-        # 171 equivale a 10 grados en raw
-        # Se usan las medidas en raw para que no haya errores de inexactitud por los grados
-        # Si la posicion final es menor que la posicion inicial, se suman los correspondientes grados a la final para simular el end feel blando
-        # Si la posicion final es mayor que la posicion inicial, se restan los correspondientes grados a la final para simular el end feel blando
-        way = calculateWay(angleAdapted, defaultPosByID)
-        if (way == NEG): posEndFeelBlando = angleToRaw(angleAdapted) + 171
-        elif ( way == POS): posEndFeelBlando = angleToRaw(angleAdapted) - 171
-
-        if (activo): moveServoToAngle(id, portHandler, packetHandler, angleAdapted)
-        else: torqueControl(id, portHandler, packetHandler, TORQUE_DISABLE)
-
-        isFinished = moveIsFinished(portHandler, packetHandler, id, angleAdapted, DXL_MOVING_STATUS_THRESHOLD_ENDFEEL)
-        while not isFinished:  
-            if (not activo):
-                comparator = (lambda x, y: x >= y) if way == POS else (lambda x, y: x <= y)
-                dxl_present_position = readPresentPosition(portHandler, packetHandler, id)
-                if (comparator(dxl_present_position, posEndFeelBlando)): 
-                    print("ENTRO")
-                    torqueLimitControl(id, portHandler, packetHandler, 20)
-                    torqueControl(id, portHandler, packetHandler, TORQUE_ENABLE)
-            isFinished = moveIsFinished(portHandler, packetHandler, id, angleAdapted, DXL_MOVING_STATUS_THRESHOLD_ENDFEEL)
-
-        speedControl(id, portHandler, packetHandler, 50)
-        torqueLimitControl(id, portHandler, packetHandler, 150)
-        moveServoToAngle(id, portHandler, packetHandler, rawToAngle(posEndFeelBlando))
-        isFinished = moveIsFinished(portHandler, packetHandler, id, rawToAngle(posEndFeelBlando), DXL_MOVING_STATUS_THRESHOLD)
-        while not isFinished:
-            isFinished = moveIsFinished(portHandler, packetHandler, id, rawToAngle(posEndFeelBlando), DXL_MOVING_STATUS_THRESHOLD)
-
-        speedControl(id, portHandler, packetHandler, SPEED_DEFAULT)
-        torqueLimitControl(id, portHandler, packetHandler, MAX_TORQUE_LIMIT)
-
-        if (activo): 
-            moveServoToAngle(id, portHandler, packetHandler, rawToAngle(defaultPosByID))
-            isFinished = moveIsFinished(portHandler, packetHandler, id, rawToAngle(defaultPosByID), DXL_MOVING_STATUS_THRESHOLD)
-            while not isFinished:
-                isFinished = moveIsFinished(portHandler, packetHandler, id, rawToAngle(defaultPosByID), DXL_MOVING_STATUS_THRESHOLD)
-        else: torqueControl(id, portHandler, packetHandler, TORQUE_DISABLE)
-
-###
-###
-###
-###
-#### TEEERRRRRMIIIIIINNNNAAAAAAARRRRR
-###
-###
-###
-###
-def endFeelBlando2(portHandler, packetHandler, id, angle, isActive):
+def endFeelBlando(portHandler, packetHandler, id, angle, isActive):
     angleAdapted = adaptAngleToId(id, angle)
     defaultPosByID = getDefaultPosById(id)
     actualDirection = UP
