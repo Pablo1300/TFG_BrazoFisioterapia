@@ -21,20 +21,25 @@ DXL4_ID                             = 4                                 # Dynami
 DXL_IDS                             = array('i', [DXL1_ID, DXL2_ID, DXL3_ID, DXL4_ID])
 ACT                                 = True
 PAS                                 = False
+POS                                 = 1
+NEG                                 = -1
+UP                                  = 2
+DOWN                                = -2
+STOPPED                             = 0    
 
 # Default parameters 
 TORQUE_ENABLE                       = 1                                 # Value for enabling the torque
 TORQUE_DISABLE                      = 0                                 # Value for disabling the torque
 DXL_MOVING_STATUS_THRESHOLD         = 5                                # Dynamixel moving status threshold
-DXL_MOVING_STATUS_THRESHOLD_ESPAS   = 20
+DXL_MOVING_STATUS_THRESHOLD_ENDFEEL = 20
 SPEED_DEFAULT                       = 100
 MAX_TORQUE_LIMIT                    = 1023
-MAX_TORQUE_LIMIT_ENDFEEL            = 150
-BAUDRATE                            = 57600                             # Dynamixel default baudrate : 57600
+MAX_TORQUE_LIMIT_ENDFEEL            = 200
+BAUDRATE                            = 2000000                             # Dynamixel default baudrate : 57600
 DEVICENAME                          = '/dev/tty.usbserial-FT6S4F80'     # Check which port is being used on your controller
                                                                         # ex) Windows: "COM1"   Linux: "/dev/ttyUSB0" Mac: "/dev/tty.usbserial-*"
-P                                   = 60
-I                                   = 40
+P                                   = 35
+I                                   = 5
 D                                   = 10
 ID1_POSITION                        = 1024
 ID2_POSITION                        = 1024

@@ -55,17 +55,20 @@ def pidControl(id, portHandler, packetHandler, p, i, d):
 
 # Leer posición actual
 def readPresentPosition(portHandler, packetHandler, id):
-    dxl_present_position, dxl_comm_result, dxl_error = packetHandler.read2ByteTxRx(portHandler, id, ADDR_MX_PRESENT_POSITION)
-    if dxl_comm_result != COMM_SUCCESS:
-        print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
-    elif dxl_error != 0:
-        print("%s" % packetHandler.getRxPacketError(dxl_error))
+    try:
+        dxl_present_position, dxl_comm_result, dxl_error = packetHandler.read2ByteTxRx(portHandler, id, ADDR_MX_PRESENT_POSITION)
+        if dxl_comm_result != COMM_SUCCESS:
+            print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
+        elif dxl_error != 0:
+            print("%s" % packetHandler.getRxPacketError(dxl_error))
 
-    # Ajustar para valores que indican un desbordamiento solo codo unico con mov negativo
-    if dxl_present_position > 28672:  # Rango maximo para el positivo
-        dxl_present_position -= 65536
-        
-    return dxl_present_position
+        # Ajustar para valores que indican un desbordamiento solo codo unico con mov negativo
+        if dxl_present_position > 28672:  # Rango maximo para el positivo
+            dxl_present_position -= 65536
+            
+        return dxl_present_position
+    except Exception as e: print("ERROR: No se ha podido leer la posicion actual\n", e)
+
 
 # Mover servo a un punto
 def moveServoToAngle(id, portHandler, packetHandler, angle):
@@ -92,14 +95,15 @@ def moveServoAddAngle(id, portHandler, packetHandler, angle):
 
 # Comprobar que el movimiento se ha realizado
 def moveIsFinished(portHandler, packetHandler, id, goalAngle, statusThreshold):
-    dxl_present_position = readPresentPosition(portHandler, packetHandler, id)
+        dxl_present_position = readPresentPosition(portHandler, packetHandler, id)
+        while dxl_present_position == None: dxl_present_position = readPresentPosition(portHandler, packetHandler, id)
 
-    # Ajustar para valores que indican un desbordamiento solo codo unico con mov negativo
-    if dxl_present_position > 28672:  # Rango maximo para el positivo
-        dxl_present_position -= 65536
-    if not abs(angleToRaw(goalAngle) - dxl_present_position) > statusThreshold:
-        return True
-    return False
+        # Ajustar para valores que indican un desbordamiento solo codo unico con mov negativo
+        if dxl_present_position > 28672:  # Rango maximo para el positivo
+            dxl_present_position -= 65536
+        if not abs(angleToRaw(goalAngle) - dxl_present_position) > statusThreshold:
+            return True
+        return False
 
 # Añadir parametro a un grupo de sincronizacion de servos
 def addParamGroupSync(groupSyncWrite, id, param):
@@ -138,16 +142,37 @@ def adaptAngleToId(id, angle):
         if -6.5 <= angle <= 140:
             angleAdapted = 130 - angle
         else: angleAdapted = "ERROR al insertar el ángulo del codo, el valor tiene que estar entre -6,5 y 140"
-    
+    else: angleAdapted = ("ERROR id desconocido")
+
     return angleAdapted
 
+def getDefaultPosById(id):
+    if (id == DXL1_ID): defaultPos = ID1_POSITION
+    elif (id == DXL2_ID): defaultPos = ID2_POSITION
+    elif (id == DXL3_ID): defaultPos = ID3_POSITION
+    elif (id == DXL4_ID): defaultPos = ID4_POSITION
+    else: raise Exception("ERROR ID desconocido")
+    return defaultPos
+
 def angleAdaptedIsValid(angleAdapted, portHandler, packetHandler, id):
-    valid = False
     if not isinstance(angleAdapted, str):
         posInicial = readPresentPosition(portHandler, packetHandler, id)
-        if (angleToRaw(angleAdapted) - posInicial == 0): print("El brazo ya se encuentra en la posición indicada")
+        while posInicial == None: posInicial = readPresentPosition(portHandler, packetHandler, id)
+        if (angleToRaw(angleAdapted) - posInicial == 0): raise Exception("El brazo ya se encuentra en la posición indicada")
         else: 
-            valid = True
-    else: print(angleAdapted)
+            return True
+    else: raise Exception(angleAdapted)
 
-    return valid
+def calculateDirection(actualPosition, previousPosition, actualDir):
+    if (previousPosition != None):
+        if (actualPosition > previousPosition): direction = UP
+        elif(actualPosition < previousPosition): direction = DOWN
+        else: direction = actualDir
+    else: direction = UP
+
+    return direction
+
+def calculateWay(angleAdapted, posInicial):
+    if (angleToRaw(angleAdapted) - posInicial < 0): way = NEG
+    elif (angleToRaw(angleAdapted) - posInicial > 0): way = POS
+    return way
