@@ -132,8 +132,7 @@ movPosInicial(portHandler, packetHandler, groupSyncWritePos)
 # endFeelBlandoAct(portHandler, packetHandler, DXL4_ID, 50)
 
 while 1:
-    endFeelSemiRig(portHandler, packetHandler, DXL1_ID, -30, ACT)
-    sleep(2)
+    endFeelSemiRig(portHandler, packetHandler, DXL3_ID, 40, PAS)
 
 # saludo(portHandler, packetHandler)
 # espasticidad(portHandler, packetHandler, DXL2_ID, 80)

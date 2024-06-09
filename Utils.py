@@ -131,13 +131,15 @@ def adaptAngleToId(id, angle):
     if id == DXL1_ID:
         if -60 <= angle <= 180:
             angleAdapted = angle + 90
-        else: angleAdapted = "ERROR al insertar el ángulo del codo, el valor tiene que estar entre -60 y 180"
+        else: angleAdapted = "ERROR al insertar el ángulo del hombro, el valor tiene que estar entre -60 y 180"
     elif id == DXL2_ID:
         if 0 <= angle <= 80: #NO VA A SER 90 COMPROBAR 
             angleAdapted = angle + 90
         else: angleAdapted = "NO ESTA TERMINADO"
     elif id == DXL3_ID:
-        angleAdapted = "NO ESTA TERMINADO"
+        if -90 <= angle <= 90:
+            angleAdapted = angle + 180
+        else: angleAdapted = "ERROR al insertar el ángulo del hombro, el valor tiene que estar entre -90 y 90"
     elif id == DXL4_ID:
         if -6.5 <= angle <= 140:
             angleAdapted = 130 - angle
@@ -146,6 +148,7 @@ def adaptAngleToId(id, angle):
 
     return angleAdapted
 
+# Obtener posicion inicial por defecto de cada servomotor
 def getDefaultPosById(id):
     if (id == DXL1_ID): defaultPos = ID1_POSITION
     elif (id == DXL2_ID): defaultPos = ID2_POSITION
@@ -154,6 +157,7 @@ def getDefaultPosById(id):
     else: raise Exception("ERROR ID desconocido")
     return defaultPos
 
+# Comprobar si el angulo adaptado es valido 
 def angleAdaptedIsValid(angleAdapted, portHandler, packetHandler, id):
     if not isinstance(angleAdapted, str):
         posInicial = readPresentPosition(portHandler, packetHandler, id)
@@ -163,16 +167,20 @@ def angleAdaptedIsValid(angleAdapted, portHandler, packetHandler, id):
             return True
     else: raise Exception(angleAdapted)
 
+# Calcular direccion de movimiento del servomotor
 def calculateDirection(actualPosition, previousPosition, actualDir):
     if (previousPosition != None):
         if (actualPosition > previousPosition): direction = UP
         elif(actualPosition < previousPosition): direction = DOWN
-        else: direction = actualDir
+        else: direction = STOPPED
     else: direction = UP
 
     return direction
 
+# Calcular sentido de movimiento del servo (de mayor a menor = NEG, de menor a mayor = POS)
 def calculateWay(angleAdapted, posInicial):
+    # Si la posicion final es menor que la posicion inicial, se suman los correspondientes grados a la final para simular el end feel
+    # Si la posicion final es mayor que la posicion inicial, se restan los correspondientes grados a la final para simular el end feel
     if (angleToRaw(angleAdapted) - posInicial < 0): way = NEG
     elif (angleToRaw(angleAdapted) - posInicial > 0): way = POS
     return way

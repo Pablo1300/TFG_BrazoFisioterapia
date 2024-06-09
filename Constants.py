@@ -16,7 +16,7 @@ ADDR_MX_PRESENT_POSITION            = 36
 # Default setting   
 DXL1_ID                             = 1                                 # Dynamixel#1 ID : 1 (Hombro vertical)
 DXL2_ID                             = 2                                 # Dynamixel#2 ID : 2 (Hombro horizontal)
-DXL3_ID                             = 3                                 # Dynamixel#3 ID : 3 (Antebrazo)
+DXL3_ID                             = 3                                 # Dynamixel#3 ID : 3 (Hombro)
 DXL4_ID                             = 4                                 # Dynamixel#4 ID : 4 (Codo)  
 DXL_IDS                             = array('i', [DXL1_ID, DXL2_ID, DXL3_ID, DXL4_ID])
 ACT                                 = True
