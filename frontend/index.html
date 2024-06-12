@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Título de la web</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+
+<body>
+    <div class="container">
+        <h1>Simulación End Feels</h1>
+        <form id="simulationForm">
+            <div class="form-group">
+                <label for="articulation">Articulación:</label>
+                <select id="articulation" name="articulation" onchange="loadMovements(), activateExecutionPoint()">
+                    <option value="disabled" disabled>Selecciona articulación...</option>
+                    <option value="hombro" selected>Hombro</option>
+                    <option value="codo">Codo</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="movement">Movimiento a realizar:</label>
+                <select id="movement" name="movement" onchange="activateExecutionPoint()">
+                    <option value="disabled" disabled selected>Selecciona tipo de movimiento...</option>
+                    <option value="flexext">Flexión/Extensión</option>
+                    <option value="abdadu">Abducción/Aducción</option>
+                    <option value="intext">Rotación Interna/Externa</option>
+                </select>
+                <span class="error-message" id="error-movement" style="display:none;">* Por favor selecciona uno de los
+                    movimientos</span>
+            </div>
+            <div class="form-group">
+                <label for="endfeel">End Feel:</label>
+                <select id="endfeel" name="endfeel">
+                    <option value="disabled" disabled selected>Selecciona tipo de end feel...</option>
+                    <option value="duro">Duro</option>
+                    <option value="blando">Blando</option>
+                    <option value="semrig">Semirrígido</option>
+                </select>
+                <span class="error-message" id="error-endfeel" style="display:none;">* Por favor selecciona uno de los
+                    end
+                    feels</span>
+            </div>
+            <div class="form-group">
+                <label for="mobilization">Tipo de movilización:</label>
+                <div class="mobilization-group">
+                    <label for="mobilization" class="mobilization-label">Manual</label>
+                    <label class="switch">
+                        <input type="checkbox" id="mobilization" name="mobilization">
+                        <span class="slider round"></span>
+                    </label>
+                    <label for="mobilization" class="mobilization-label">Autopasiva</label>
+                </div>
+            </div>
+            <div class="form-group" disabled>
+                <label for="executionPoint">Punto de ejecución del end feel</label>
+                <input type="range" id="executionPoint" name="executionPoint"
+                    oninput="this.nextElementSibling.value = this.value" disabled>
+                <output>Selecciona articulación y movimiento para calcular rango de movimiento</output>
+                <span class="error-message" id="error-range" style="display:none;">* El punto de ejecución del end feel
+                    debe ser distinto a la posición inicial</span>
+            </div>
+            <button type="submit" id="simulateButton">SIMULAR</button>
+        </form>
+    </div>
+    <script src="./js/script.js"></script>
+</body>
+
+</html>
