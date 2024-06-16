@@ -68,7 +68,12 @@ input[type="range"] {
     accent-color: #00909e;
 }
 
-output {
+.grado-group {
+    display: flex;
+    justify-content: center;
+}
+
+.select-message {
     display: block;
     text-align: center;
     font-weight: bold;

@@ -1,5 +1,6 @@
 from Utils import *
 from array import array
+from time import sleep
 
 # Funcion para simular end feel duros
 def endFeelDuro(portHandler, packetHandler, id, angle, activo):
@@ -51,6 +52,7 @@ def endFeelDuro(portHandler, packetHandler, id, angle, activo):
                 isFinished = moveIsFinished(portHandler, packetHandler, id, rawToAngle(defaultPosByID), DXL_MOVING_STATUS_THRESHOLD)
 
         if activo: # Si la simulacion es activa ejecutar la ultima etapa del movimiento
+            sleep(5)
             moveServoToAngle(id, portHandler, packetHandler, rawToAngle(defaultPosByID))
             isFinished = moveIsFinished(portHandler, packetHandler, id, rawToAngle(defaultPosByID), DXL_MOVING_STATUS_THRESHOLD)
             while not isFinished:
@@ -131,12 +133,13 @@ def endFeelBlando(portHandler, packetHandler, id, angle, isActive):
             
         if (isActive): # Si la simulacion es activa ejecutar la ultima etapa del movimiento
             # Mover servomotor hacia el punto de ejecucion del end feel
-            speedControl(id, portHandler, packetHandler, 50)
+            speedControl(id, portHandler, packetHandler, 150)
             moveServoToAngle(id, portHandler, packetHandler, rawToAngle(posEndFeelBlando))
             isFinished = moveIsFinished(portHandler, packetHandler, id, rawToAngle(posEndFeelBlando), DXL_MOVING_STATUS_THRESHOLD_ENDFEEL)
             while not isFinished:
                 isFinished = moveIsFinished(portHandler, packetHandler, id, rawToAngle(posEndFeelBlando), DXL_MOVING_STATUS_THRESHOLD_ENDFEEL)
 
+            sleep(5)
             # Mover servomotor hacia el punto de inicio
             speedControl(id, portHandler, packetHandler, SPEED_DEFAULT)
             moveServoToAngle(id, portHandler, packetHandler, rawToAngle(defaultPosByID))

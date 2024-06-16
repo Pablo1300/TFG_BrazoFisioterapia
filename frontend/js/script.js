@@ -4,49 +4,60 @@ const endfeels = document.getElementById("endfeel")
 const range = document.getElementById("executionPoint")
 const simulateButton = document.getElementById("simulateButton")
 
+// Función encargada de activar la variable de punto de ejecución si la articulacion y el movimiento estan seleccionados
 function activateExecutionPoint() {
+    // Si en el select de movimientos no hay ningun valor elegido
     if (movements.value === "disabled") {
         range.disabled = true;
-        range.nextElementSibling.value = "Selecciona articulación y movimiento para calcular rango de movimiento"
-    } else {
+        range.nextElementSibling.querySelector('output').value = "Selecciona articulación y movimiento para calcular rango de movimiento"
+    } else { // Si en el select de movimientos hay algun valor elegido
         range.disabled = false;
+        // Variable de articulaciones y sus movimientos con su rango de movimiento
         let executionPointList = {
             hombro: [[-60, 180, "flexext"], [0, 180, "abdadu"], [-90, 90, "intext"]],
             codo: [[-7, 140, "flexext"]],
         }
+        // Si la articulación elegida es el hombro...
         if (articulations.value === "hombro") {
+            // Se agrega el rango y valor del movimiento seleccionado
             executionPointList.hombro.forEach(function (executionPoint) {
                 if (movements.value === executionPoint[2]) {
                     range.min = executionPoint[0]
                     range.max = executionPoint[1]
                 }
             })
-        } else {
+        } else { // Si la articulación elegida es el codo...
+            // Se agrega el rango y valor del movimiento disponibñe
             range.min = executionPointList.codo[0][0]
             range.max = executionPointList.codo[0][1]
         }
         range.value = 0
-        range.nextElementSibling.value = range.value
+        range.nextElementSibling.querySelector('output').value = range.value
+
+        document.getElementById("grado").style.display = "block"
     }
 }
 
-function loadMovements() {
-    // Objeto de provincias con pueblos
+articulations.addEventListener("change", function () {
+    activateExecutionPoint()
+
+    // Variable de articulaciones con sus respectivos movimientos
     let movementList = {
         hombro: [["Flexión/Extensión", "flexext"], ["Abducción/Aducción", "abdadu"], ["Rotación Interna/Externa", "intext"]],
         codo: [["Flexión/Extensión", "flexext"]],
     }
-
+    // Se obtiene el valor seleccionado en articulaciones
     let articulationSelected = articulations.value
 
-    // Se limpian los pueblos
+    // Se limpia el select de movimientos
     movements.innerHTML = '<option value="disabled" disabled selected>Selecciona tipo de movimiento...</option>'
 
+    // Si la articulación seleccionada no es null
     if (articulationSelected !== '') {
-        // Se seleccionan los pueblos y se ordenan
+        // Se seleccionan los movimientos de dicha articulacion
         articulationSelected = movementList[articulationSelected]
 
-        // Insertamos los pueblos
+        // Se insertan los movimientos
         articulationSelected.forEach(function (movement) {
             let option = document.createElement('option')
             option.value = movement[1]
@@ -54,7 +65,11 @@ function loadMovements() {
             movements.add(option)
         });
     }
-}
+})
+
+movements.addEventListener("change", function () {
+    activateExecutionPoint()
+})
 
 simulateButton.addEventListener("click", function (event) {
     let movementSelected = movements.value
@@ -66,23 +81,23 @@ simulateButton.addEventListener("click", function (event) {
     let errorRange = document.getElementById("error-range")
 
     if (movementSelected === "disabled") {
-        errorMovement.style.display = "block";
+        errorMovement.style.display = "block"
         event.preventDefault()
     } else {
         errorMovement.style.display = "none";
     }
 
     if (endFeelSelected === "disabled") {
-        errorEndFeel.style.display = "block";
+        errorEndFeel.style.display = "block"
         event.preventDefault()
     } else {
-        errorEndFeel.style.display = "none";
+        errorEndFeel.style.display = "none"
     }
 
     if (executionPoint == 0) {
-        errorRange.style.display = "block";
+        errorRange.style.display = "block"
         event.preventDefault()
     } else {
-        errorRange.style.display = "none";
+        errorRange.style.display = "none"
     }
 })

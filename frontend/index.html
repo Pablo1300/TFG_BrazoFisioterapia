@@ -14,7 +14,7 @@
         <form id="simulationForm">
             <div class="form-group">
                 <label for="articulation">Articulación:</label>
-                <select id="articulation" name="articulation" onchange="loadMovements(), activateExecutionPoint()">
+                <select id="articulation" name="articulation">
                     <option value="disabled" disabled>Selecciona articulación...</option>
                     <option value="hombro" selected>Hombro</option>
                     <option value="codo">Codo</option>
@@ -22,7 +22,7 @@
             </div>
             <div class="form-group">
                 <label for="movement">Movimiento a realizar:</label>
-                <select id="movement" name="movement" onchange="activateExecutionPoint()">
+                <select id="movement" name="movement">
                     <option value="disabled" disabled selected>Selecciona tipo de movimiento...</option>
                     <option value="flexext">Flexión/Extensión</option>
                     <option value="abdadu">Abducción/Aducción</option>
@@ -46,19 +46,23 @@
             <div class="form-group">
                 <label for="mobilization">Tipo de movilización:</label>
                 <div class="mobilization-group">
-                    <label for="mobilization" class="mobilization-label">Manual</label>
+                    <label for="mobilization" class="mobilization-label">Pasiva</label>
                     <label class="switch">
                         <input type="checkbox" id="mobilization" name="mobilization">
                         <span class="slider round"></span>
                     </label>
-                    <label for="mobilization" class="mobilization-label">Autopasiva</label>
+                    <label for="mobilization" class="mobilization-label">Activa</label>
                 </div>
             </div>
             <div class="form-group" disabled>
                 <label for="executionPoint">Punto de ejecución del end feel</label>
                 <input type="range" id="executionPoint" name="executionPoint"
-                    oninput="this.nextElementSibling.value = this.value" disabled>
-                <output>Selecciona articulación y movimiento para calcular rango de movimiento</output>
+                    oninput="this.nextElementSibling.querySelector('output').value = this.value" disabled>
+                <div class="grado-group">
+                    <output class="select-message">Selecciona articulación y movimiento para calcular rango de
+                        movimiento</output>
+                    <span id="grado" class="select-message" style="display:none;">°</span>
+                </div>
                 <span class="error-message" id="error-range" style="display:none;">* El punto de ejecución del end feel
                     debe ser distinto a la posición inicial</span>
             </div>

@@ -107,10 +107,10 @@ else:
 setDefaultConfiguration(portHandler, packetHandler)
 movPosInicial(portHandler, packetHandler, groupSyncWritePos)
 
-# while 1:
-#     endFeelBlando(portHandler, packetHandler, DXL2_ID, 180, ACT)
+while 1:
+    endFeelDuro(portHandler, packetHandler, DXL4_ID, 100, ACT)
 
-saludo(portHandler, packetHandler)
+# saludo(portHandler, packetHandler)
 
 # saludo(portHandler, packetHandler)
 

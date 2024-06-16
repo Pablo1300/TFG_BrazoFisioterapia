@@ -133,9 +133,9 @@ def adaptAngleToId(id, angle):
             angleAdapted = angle + 90
         else: angleAdapted = "ERROR al insertar el ángulo del hombro, el valor tiene que estar entre -60 y 180"
     elif id == DXL2_ID:
-        if 0 <= angle <= 180: #NO VA A SER 90 COMPROBAR 
+        if 0 <= angle <= 180:
             angleAdapted = angle + 90
-        else: angleAdapted = "NO ESTA TERMINADO"
+        else: angleAdapted = "ERROR al insertar el ángulo del hombro, el valor tiene que estar entre 0 y 180"
     elif id == DXL3_ID:
         if -90 <= angle <= 90:
             angleAdapted = angle + 180
