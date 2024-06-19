@@ -2,7 +2,7 @@ import os
 from Utils import *
 from EndFeels import *
 from time import sleep
-from Chorradas import *
+from routes import data_queue, stop_queue
 from dynamixel_sdk import *     # Uses Dynamixel SDK library
 
 # Definicion de funcion getch() para obtener la tecla que se pulsa dependiendo del SSOO
@@ -71,48 +71,84 @@ def movPosInicial(portHandler, packetHandler, groupSyncWritePos):
                 (abs(ID3_POSITION - dxl3_present_position) > DXL_MOVING_STATUS_THRESHOLD) or
                 (abs(ID4_POSITION - dxl4_present_position) > DXL_MOVING_STATUS_THRESHOLD)):
             print("Brazo posicionado y listo")
-            break          
+            break     
 
-# Initialize PortHandler instance
-# Set the port path
-# Get methods and members of PortHandlerLinux or PortHandlerWindows
-portHandler = PortHandler(DEVICENAME)
+def executeEndFeelUsingData(portHandler, packetHandler, data): 
+    articulation = data["articulation"]
+    movement = data["movement"]
+    endfeel = data["endfeel"]
+    mobilization = data["mobilization"]
+    executionPoint = int(data["executionPoint"])
 
-# Initialize PacketHandler instance
-# Set the protocol version
-# Get methods and members of Protocol1PacketHandler or Protocol2PacketHandler
-packetHandler = PacketHandler(PROTOCOL_VERSION)
+    if (articulation == "hombro"):
+        match (movement):
+            case "flexext": id = DXL1_ID
+            case "abdadu": id = DXL2_ID
+            case "intext": id = DXL3_ID
+    else: id = DXL4_ID
 
-# Initialize GroupSyncWrite instance
-groupSyncWritePos = GroupSyncWrite(portHandler, packetHandler, ADDR_MX_GOAL_POSITION, LEN_MX_GOAL_POSITION)
+    if mobilization == "true": mobilization = ACT
+    else: mobilization = PAS
+    
+    match (endfeel):
+        case "duro": endFeelDuro(portHandler, packetHandler, id, executionPoint, mobilization)
+        case "blando": endFeelBlando(portHandler, packetHandler, id, executionPoint, mobilization)
+        case "semrig": endFeelSemiRig(portHandler, packetHandler, id, executionPoint, mobilization)
 
-# Open port
-if portHandler.openPort():
-    print("Succeeded to open the port")
-else:
-    print("Failed to open the port")
-    print("Press any key to terminate...")
-    getch()
-    quit()
+def endfeels_function(portHandler, packetHandler, groupSyncWritePos):
+    while True:
+        try:
+            # Obtener datos de la cola (espera si la cola está vacía)
+            data = data_queue.get()
+            if data:
+                isSimulating = True
+                while isSimulating:
+                    try:
+                        if stop_queue.get_nowait() == "False": isSimulating = False
+                        stop_queue.task_done()
+                    except:
+                        executeEndFeelUsingData(portHandler, packetHandler, data)
+                setDefaultConfiguration(portHandler, packetHandler)
+                movPosInicial(portHandler, packetHandler, groupSyncWritePos)
+                data_queue.task_done()
+        except Exception as e:
+            print("Error al procesar los datos:", e)
+    
+    # Close port
+    portHandler.closePort()
 
-# Set port baudrate
-if portHandler.setBaudRate(BAUDRATE):
-    print("Succeeded to change the baudrate")
-else:
-    print("Failed to change the baudrate")
-    print("Press any key to terminate...")
-    getch()
-    quit()
+def executeController():
+    # Initialize PortHandler instance
+    # Set the port path
+    # Get methods and members of PortHandlerLinux or PortHandlerWindows
+    portHandler = PortHandler(DEVICENAME)
 
-setDefaultConfiguration(portHandler, packetHandler)
-movPosInicial(portHandler, packetHandler, groupSyncWritePos)
+    # Initialize PacketHandler instance
+    # Set the protocol version
+    # Get methods and members of Protocol1PacketHandler or Protocol2PacketHandler
+    packetHandler = PacketHandler(PROTOCOL_VERSION)
 
-while 1:
-    endFeelDuro(portHandler, packetHandler, DXL4_ID, 100, ACT)
+    # Initialize GroupSyncWrite instance
+    groupSyncWritePos = GroupSyncWrite(portHandler, packetHandler, ADDR_MX_GOAL_POSITION, LEN_MX_GOAL_POSITION)
 
-# saludo(portHandler, packetHandler)
+    # Open port
+    if portHandler.openPort():
+        print("Succeeded to open the port")
+    else:
+        print("Failed to open the port")
+        print("Press any key to terminate...")
+        getch()
+        quit()
 
-# saludo(portHandler, packetHandler)
+    # Set port baudrate
+    if portHandler.setBaudRate(BAUDRATE):
+        print("Succeeded to change the baudrate")
+    else:
+        print("Failed to change the baudrate")
+        print("Press any key to terminate...")
+        getch()
+        quit()  
 
-# Close port
-portHandler.closePort()
+    setDefaultConfiguration(portHandler, packetHandler)
+    movPosInicial(portHandler, packetHandler, groupSyncWritePos)
+    endfeels_function(portHandler, packetHandler, groupSyncWritePos)

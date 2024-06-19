@@ -11,7 +11,7 @@
 <body>
     <div class="container">
         <h1>Simulación End Feels</h1>
-        <form id="simulationForm">
+        <form id="simulationForm" method="post">
             <div class="form-group">
                 <label for="articulation">Articulación:</label>
                 <select id="articulation" name="articulation">
@@ -58,7 +58,7 @@
                 <label for="executionPoint">Punto de ejecución del end feel</label>
                 <input type="range" id="executionPoint" name="executionPoint"
                     oninput="this.nextElementSibling.querySelector('output').value = this.value" disabled>
-                <div class="grado-group">
+                <div class="flex-group">
                     <output class="select-message">Selecciona articulación y movimiento para calcular rango de
                         movimiento</output>
                     <span id="grado" class="select-message" style="display:none;">°</span>
@@ -66,7 +66,10 @@
                 <span class="error-message" id="error-range" style="display:none;">* El punto de ejecución del end feel
                     debe ser distinto a la posición inicial</span>
             </div>
-            <button type="submit" id="simulateButton">SIMULAR</button>
+            <div class="flex-group">
+                <button type="submit" id="simulateButton">SIMULAR</button>
+                <button id="stopButton">PARAR</button>
+            </div>
         </form>
     </div>
     <script src="./js/script.js"></script>
