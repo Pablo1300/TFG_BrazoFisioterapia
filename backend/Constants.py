@@ -46,6 +46,7 @@ ID2_POSITION                        = 1024
 ID3_POSITION                        = 2048
 ID4_POSITION                        = 1479
 COMM_SUCCESS                        = 0
+COMM_ERROR                          = -1
 
 # Data Byte Length
 LEN_MX_GOAL_POSITION                = 2

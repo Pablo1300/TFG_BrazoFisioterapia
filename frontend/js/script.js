@@ -4,7 +4,7 @@ const endfeels = document.getElementById("endfeel")
 const range = document.getElementById("executionPoint")
 const simulateButton = document.getElementById("simulateButton")
 const stopButton = document.getElementById("stopButton")
-const ip = "172.20.10.2"
+const ip = "localhost"
 
 // Función encargada de activar la variable de punto de ejecución si la articulacion y el movimiento estan seleccionados
 function activateExecutionPoint() {
@@ -112,6 +112,14 @@ stopButton.addEventListener("click", function (event) {
             console.log('Server Response:', data)
         })
         .catch(error => console.error('Error:', error))
+
+
+    //CONTROLAR AQUI QUE DE VERDAD HA PARADO PORQUE NADA MAS PULSAR NO PARA
+    simulateButton.disabled = false
+    simulateButton.innerText = "SIMULAR"
+
+    stopButton.disabled = true
+    stopButton.innerText = "PARADO"
 })
 
 // Se añade al boton del formulario la validación y subida de datos cuando se haga click
@@ -153,5 +161,12 @@ simulateButton.addEventListener("click", function (event) {
         errorRange.style.display = "none"
     }
 
-    if (dataError === 0) sendData(event)
+    if (dataError === 0) {
+        sendData(event)
+        simulateButton.disabled = true
+        simulateButton.innerText = "SIMULANDO..."
+
+        stopButton.disabled = false
+        stopButton.innerText = "PARAR"
+    }
 })

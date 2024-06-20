@@ -59,16 +59,28 @@ def readPresentPosition(portHandler, packetHandler, id):
         dxl_present_position, dxl_comm_result, dxl_error = packetHandler.read2ByteTxRx(portHandler, id, ADDR_MX_PRESENT_POSITION)
         if dxl_comm_result != COMM_SUCCESS:
             print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
+            dxl_present_position = None
         elif dxl_error != 0:
             print("%s" % packetHandler.getRxPacketError(dxl_error))
+            dxl_present_position = None
 
-        # Ajustar para valores que indican un desbordamiento solo codo unico con mov negativo
-        if dxl_present_position > 28672:  # Rango maximo para el positivo
-            dxl_present_position -= 65536
+        if dxl_present_position != None:
+            # Ajustar para valores que indican un desbordamiento solo codo unico con mov negativo
+            if dxl_present_position > 28672:  # Rango maximo para el positivo
+                dxl_present_position -= 65536
             
         return dxl_present_position
     except Exception as e: print("ERROR: No se ha podido leer la posicion actual\n", e)
 
+# Leer torque actual
+def readPresentTorque(portHandler, packetHandler, id):
+    dxl_present_torque, dxl_comm_result, dxl_error = packetHandler.read2ByteTxRx(portHandler, id, ADDR_MX_TORQUE_ENABLE)
+    if dxl_comm_result != COMM_SUCCESS:
+        print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
+    elif dxl_error != 0:
+        print("%s" % packetHandler.getRxPacketError(dxl_error))
+        
+    return dxl_present_torque
 
 # Mover servo a un punto
 def moveServoToAngle(id, portHandler, packetHandler, angle):
@@ -114,17 +126,24 @@ def addParamGroupSync(groupSyncWrite, id, param):
 
 # Configurar servo en modo multivuelta
 def setMultiturnMode(portHandler, packetHandler, id):
+    error = COMM_SUCCESS
+
     dxl_comm_result, dxl_error = packetHandler.write2ByteTxRx(portHandler, id, ADDR_MX_CW_ANGLE_LIMIT, 4095)
     if dxl_comm_result != COMM_SUCCESS:
         print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
+        error = COMM_ERROR
     elif dxl_error != 0:
         print("%s" % packetHandler.getRxPacketError(dxl_error))
+        error = COMM_ERROR
         
     dxl_comm_result, dxl_error = packetHandler.write2ByteTxRx(portHandler, id, ADDR_MX_CCW_ANGLE_LIMIT, 4095)
     if dxl_comm_result != COMM_SUCCESS:
         print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
+        error = COMM_ERROR
     elif dxl_error != 0:
         print("%s" % packetHandler.getRxPacketError(dxl_error))
+        error = COMM_ERROR
+    return error
 
 # Configura el angulo de entrada a la posicion especifica del servomotor
 def adaptAngleToId(id, angle):
@@ -168,7 +187,7 @@ def angleAdaptedIsValid(angleAdapted, portHandler, packetHandler, id):
     else: raise Exception(angleAdapted)
 
 # Calcular direccion de movimiento del servomotor
-def calculateDirection(actualPosition, previousPosition, actualDir):
+def calculateDirection(actualPosition, previousPosition):
     if (previousPosition != None):
         if (actualPosition > previousPosition): direction = UP
         elif(actualPosition < previousPosition): direction = DOWN
@@ -184,3 +203,10 @@ def calculateWay(angleAdapted, posInicial):
     if (angleToRaw(angleAdapted) - posInicial < 0): way = NEG
     elif (angleToRaw(angleAdapted) - posInicial > 0): way = POS
     return way
+
+def isMotorOff(portHandler, packetHandler):
+    presentTorqueValues = array('i')
+    for DXL_ID in DXL_IDS: presentTorqueValues.append(readPresentTorque(portHandler, packetHandler, DXL_ID))
+
+    if (presentTorqueValues[0] == presentTorqueValues[1] == presentTorqueValues[2] == presentTorqueValues[3] == 0): return True
+    else: return False

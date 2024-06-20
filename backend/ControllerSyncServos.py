@@ -1,9 +1,8 @@
 import os
 from Utils import *
 from EndFeels import *
-from time import sleep
-from routes import data_queue, stop_queue
-from dynamixel_sdk import *     # Uses Dynamixel SDK library
+from server import data_queue, stop_queue
+from dynamixel_sdk import *  # Uses Dynamixel SDK library
 
 # Definicion de funcion getch() para obtener la tecla que se pulsa dependiendo del SSOO
 if os.name == 'nt':
@@ -24,16 +23,19 @@ else:
 
 def setDefaultConfiguration(portHandler, packetHandler):
     # Servo del codo a modo multivuelta para poder ejecutar movimientos sin restricción del eje
-    setMultiturnMode(portHandler, packetHandler, DXL4_ID)
+    error = setMultiturnMode(portHandler, packetHandler, DXL4_ID)
 
-    # Configuramos todos los id con sus parametros predefinidos
-    for DXL_ID in DXL_IDS:
-        torqueControl(DXL_ID, portHandler, packetHandler, TORQUE_ENABLE)
-        torqueLimitControl(DXL_ID, portHandler, packetHandler, MAX_TORQUE_LIMIT)
-        speedControl(DXL_ID, portHandler, packetHandler, SPEED_DEFAULT)
-        pidControl(DXL_ID, portHandler, packetHandler, P, I, D)
+    if (error != COMM_ERROR):
+        # Configuramos todos los id con sus parametros predefinidos
+        for DXL_ID in DXL_IDS:
+            torqueControl(DXL_ID, portHandler, packetHandler, TORQUE_ENABLE)
+            torqueLimitControl(DXL_ID, portHandler, packetHandler, MAX_TORQUE_LIMIT)
+            speedControl(DXL_ID, portHandler, packetHandler, SPEED_DEFAULT)
+            pidControl(DXL_ID, portHandler, packetHandler, P, I, D)
+    return error
 
 def movPosInicial(portHandler, packetHandler, groupSyncWritePos):
+    error = COMM_SUCCESS
     # Descomponemos valor int de 32 bits en bytes individuales para que puedan ser procesados
     id1_goal_position = [DXL_LOBYTE(ID1_POSITION), DXL_HIBYTE(ID1_POSITION)]
     id2_goal_position = [DXL_LOBYTE(ID2_POSITION), DXL_HIBYTE(ID2_POSITION)]
@@ -61,6 +63,10 @@ def movPosInicial(portHandler, packetHandler, groupSyncWritePos):
         dxl3_present_position = readPresentPosition(portHandler, packetHandler, DXL3_ID)
         dxl4_present_position = readPresentPosition(portHandler, packetHandler, DXL4_ID)
 
+        if(dxl1_present_position == dxl2_present_position == dxl3_present_position == dxl4_present_position == None): 
+            error = COMM_ERROR
+            break
+
         # Ajustar para valores que indican un desbordamiento
         if dxl4_present_position > 28672:  # Rango maximo para el positivo
             dxl4_present_position -= 65536
@@ -71,7 +77,8 @@ def movPosInicial(portHandler, packetHandler, groupSyncWritePos):
                 (abs(ID3_POSITION - dxl3_present_position) > DXL_MOVING_STATUS_THRESHOLD) or
                 (abs(ID4_POSITION - dxl4_present_position) > DXL_MOVING_STATUS_THRESHOLD)):
             print("Brazo posicionado y listo")
-            break     
+            break    
+    return error
 
 def executeEndFeelUsingData(portHandler, packetHandler, data): 
     articulation = data["articulation"]
@@ -96,26 +103,21 @@ def executeEndFeelUsingData(portHandler, packetHandler, data):
         case "semrig": endFeelSemiRig(portHandler, packetHandler, id, executionPoint, mobilization)
 
 def endfeels_function(portHandler, packetHandler, groupSyncWritePos):
-    while True:
-        try:
-            # Obtener datos de la cola (espera si la cola está vacía)
-            data = data_queue.get()
-            if data:
-                isSimulating = True
-                while isSimulating:
-                    try:
-                        if stop_queue.get_nowait() == "False": isSimulating = False
-                        stop_queue.task_done()
-                    except:
-                        executeEndFeelUsingData(portHandler, packetHandler, data)
-                setDefaultConfiguration(portHandler, packetHandler)
-                movPosInicial(portHandler, packetHandler, groupSyncWritePos)
-                data_queue.task_done()
-        except Exception as e:
-            print("Error al procesar los datos:", e)
-    
-    # Close port
-    portHandler.closePort()
+    try:
+        # Obtener datos de la cola 
+        try: data = data_queue.get_nowait()
+        except: data = None
+        if data:
+            isSimulating = True
+            while isSimulating:
+                try:
+                    if stop_queue.get_nowait() == "False": isSimulating = False
+                except:
+                    executeEndFeelUsingData(portHandler, packetHandler, data)
+            setDefaultConfiguration(portHandler, packetHandler)
+            movPosInicial(portHandler, packetHandler, groupSyncWritePos)
+    except Exception as e:
+        print("Error al procesar los datos:", e)
 
 def executeController():
     # Initialize PortHandler instance
@@ -149,6 +151,11 @@ def executeController():
         getch()
         quit()  
 
-    setDefaultConfiguration(portHandler, packetHandler)
-    movPosInicial(portHandler, packetHandler, groupSyncWritePos)
-    endfeels_function(portHandler, packetHandler, groupSyncWritePos)
+    error = setDefaultConfiguration(portHandler, packetHandler)
+    error = movPosInicial(portHandler, packetHandler, groupSyncWritePos)
+    if (error == COMM_SUCCESS):
+        while not isMotorOff(portHandler, packetHandler): 
+            endfeels_function(portHandler, packetHandler, groupSyncWritePos)
+
+    # Close port
+    portHandler.closePort()

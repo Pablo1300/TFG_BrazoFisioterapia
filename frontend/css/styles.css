@@ -68,6 +68,12 @@ input[type="range"] {
     accent-color: #00909e;
 }
 
+input[type="range"]:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+    accent-color: #919191;
+}
+
 .flex-group {
     display: flex;
     justify-content: center;
@@ -92,6 +98,12 @@ button {
 
 button:hover {
     background-color: #c53d30;
+}
+
+button:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+    background-color: #919191;
 }
 
 .switch {
@@ -126,7 +138,7 @@ button:hover {
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: #ccc;
+    background-color: #919191;
     transition: .4s;
 }
 
@@ -137,7 +149,7 @@ button:hover {
     width: 26px;
     left: 4px;
     bottom: 4px;
-    background-color: white;
+    background-color: #ffffff;
     transition: .4s;
 }
 
