@@ -13,7 +13,7 @@ ADDR_MX_MOVING_SPEED                = 32
 ADDR_MX_TORQUE_LIMIT                = 34
 ADDR_MX_PRESENT_POSITION            = 36
 
-# Default setting   
+# Default settings   
 DXL1_ID                             = 1                                 # Dynamixel#1 ID : 1 (Hombro vertical)
 DXL2_ID                             = 2                                 # Dynamixel#2 ID : 2 (Hombro horizontal)
 DXL3_ID                             = 3                                 # Dynamixel#3 ID : 3 (Hombro)
@@ -26,8 +26,6 @@ NEG                                 = -1
 UP                                  = 2
 DOWN                                = -2
 STOPPED                             = 0    
-
-# Default parameters 
 TORQUE_ENABLE                       = 1                                 # Value for enabling the torque
 TORQUE_DISABLE                      = 0                                 # Value for disabling the torque
 DXL_MOVING_STATUS_THRESHOLD         = 5                                # Dynamixel moving status threshold

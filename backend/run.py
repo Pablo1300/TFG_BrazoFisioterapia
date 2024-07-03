@@ -1,7 +1,11 @@
 
 from server import server
-from ControllerSyncServos import executeController
+from controller import executeController
 import threading
+
+def startServer():
+    server.start()
+    print("Server started")
 
 def closeServer():
     server.shutdown()
@@ -9,8 +13,7 @@ def closeServer():
 
 
 if __name__ == '__main__':
-    server.start()
-
+    startServer()
     try:
         endfeels_process = threading.Thread(target=executeController())
         endfeels_process.start()
@@ -21,6 +24,3 @@ if __name__ == '__main__':
     except (Exception, KeyboardInterrupt) as e:
         print(e)
         closeServer()
-
-# MAÑANA: que se ejecute el shutdown en todo caso, que cuando apagues el robot termine el programa y que se guarden datos de ejecucion y parar
-    

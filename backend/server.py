@@ -1,16 +1,21 @@
 
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
-import queue
 import threading
 from werkzeug.serving import make_server
+from utils import simulating_queue, stop_queue, data_queue
 
 app = Flask(__name__)
 CORS(app)
 
-# Colas para almacenar los datos
-data_queue = queue.Queue()
-stop_queue = queue.Queue()
+simulation = {
+    'articulation': None,
+    'movement': None,
+    'endfeel': None,
+    'mobilization': None,
+    'executionPoint': None,
+    'simulating': "false"
+}
 
 class ServerEndFeels(threading.Thread):
     def __init__(self, app, host='0.0.0.0', port=5000):
@@ -54,6 +59,21 @@ def stopSimulation():
     stop_queue.put(isSimulating)
 
     return jsonify({"status": "success", "message": "stopped received"})
+
+@app.route('/simulating', methods=['GET'])
+def isSimulating():
+    global simulating
+    try: 
+        data = simulating_queue.get_nowait()
+
+        simulation["articulation"] = data["articulation"]
+        simulation["movement"] = data["movement"]
+        simulation["endfeel"] = data["endfeel"]
+        simulation["mobilization"] = data["mobilization"]
+        simulation["executionPoint"] = data["executionPoint"]
+        simulation["simulating"] = data["simulating"]
+    except: pass
+    return jsonify({"status": "success", "articulation": simulation['articulation'], "movement": simulation['movement'], "endfeel": simulation['endfeel'], "mobilization": simulation['mobilization'], "executionPoint": simulation['executionPoint'], "simulating": simulation['simulating']}) 
 
 server = ServerEndFeels(app)
 

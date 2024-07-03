@@ -18,7 +18,7 @@ function activateExecutionPoint() {
         // Variable de articulaciones y sus movimientos con su rango de movimiento
         let executionPointList = {
             hombro: [[-60, 180, "flexext"], [0, 180, "abdadu"], [-90, 90, "intext"]],
-            codo: [[-7, 140, "flexext"]],
+            codo: [[-5, 140, "flexext"]],
         }
         // Si la articulación elegida es el hombro...
         if (articulations.value === "hombro") {
@@ -51,8 +51,15 @@ articulations.addEventListener("change", function () {
     // Se obtiene el valor seleccionado en articulaciones
     let articulationSelected = articulations.value
 
-    // Se limpia el select de movimientos
-    movements.innerHTML = '<option value="disabled" disabled selected>Selecciona tipo de movimiento...</option>'
+    if (articulationSelected === 'codo') {
+        // Se limpia el select de movimientos
+        movements.innerHTML = '<option value="disabled" disabled>Selecciona tipo de movimiento...</option>'
+    }
+
+    if (articulationSelected === 'hombro') {
+        // Se limpia el select de movimientos
+        movements.innerHTML = '<option value="disabled" disabled selected>Selecciona tipo de movimiento...</option>'
+    }
 
     // Si la articulación seleccionada no es null
     if (articulationSelected !== '') {
@@ -64,6 +71,7 @@ articulations.addEventListener("change", function () {
             let option = document.createElement('option')
             option.value = movement[1]
             option.text = movement[0]
+            if (articulationSelected === 'codo') option.selected = true
             movements.add(option)
         })
     }
@@ -78,6 +86,7 @@ movements.addEventListener("change", function () {
 
 function sendData(event) {
     const form = document.getElementById("simulationForm")
+    let errorConnection = document.getElementById("error-disconnected")
     event.preventDefault(); // Evitar que el formulario se envíe de la forma predeterminada
 
     const formData = new FormData(form)
@@ -87,18 +96,42 @@ function sendData(event) {
         method: 'POST',
         body: formData
     })
-        .then(response => response.json())
-        .then(data => {
-            console.log('Server Response:', data)
-            console.log("recargo pag")
-            // window.location.reload(true); // Recarga la página desde el servidor, no de la caché
+        .then(response => {
+            if (!response.ok) throw new Error('Network response was not ok ' + response.statusText);
+            else simulatingButtonsState()
+            return response.json();
         })
-        .catch(error => console.error('Error:', error))
+        .then(data => {
+            errorConnection.style.display = "none"
+            console.log('Server Response:', data)
+        })
+        .catch(error => {
+            errorConnection.style.display = "block"
+            console.error('Error:', error)
+        })
+}
+
+function simulatingButtonsState() {
+    simulateButton.disabled = true
+    simulateButton.innerText = "SIMULANDO..."
+
+    stopButton.disabled = false
+    stopButton.innerText = "PARAR"
+}
+
+function stoppedButtonsState() {
+    simulateButton.disabled = false
+    simulateButton.innerText = "SIMULAR"
+
+    stopButton.disabled = true
+    stopButton.innerText = "PARADO"
 }
 
 stopButton.addEventListener("click", function (event) {
     event.preventDefault()
-    const data = { simulating: 'False' };
+    const data = { simulating: 'False' }
+    let errorConnection = document.getElementById("error-disconnected")
+
 
     fetch('http://' + ip + ':5000/stop', {
         method: 'POST',
@@ -107,19 +140,19 @@ stopButton.addEventListener("click", function (event) {
         },
         body: JSON.stringify(data)
     })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) throw new Error('Network response was not ok ' + response.statusText)
+            else stoppedButtonsState()
+            return response.json();
+        })
         .then(data => {
+            errorConnection.style.display = "none"
             console.log('Server Response:', data)
         })
-        .catch(error => console.error('Error:', error))
-
-
-    //CONTROLAR AQUI QUE DE VERDAD HA PARADO PORQUE NADA MAS PULSAR NO PARA
-    simulateButton.disabled = false
-    simulateButton.innerText = "SIMULAR"
-
-    stopButton.disabled = true
-    stopButton.innerText = "PARADO"
+        .catch(error => {
+            errorConnection.style.display = "block"
+            console.error('Error:', error)
+        })
 })
 
 // Se añade al boton del formulario la validación y subida de datos cuando se haga click
@@ -153,7 +186,7 @@ simulateButton.addEventListener("click", function (event) {
     }
 
     // Si el valor de range executionPoint es 0...
-    if (executionPoint == 0) {
+    if (executionPoint == 0 && range.disabled == false) {
         errorRange.style.display = "block"
         event.preventDefault()
         dataError = 1
@@ -163,10 +196,37 @@ simulateButton.addEventListener("click", function (event) {
 
     if (dataError === 0) {
         sendData(event)
-        simulateButton.disabled = true
-        simulateButton.innerText = "SIMULANDO..."
-
-        stopButton.disabled = false
-        stopButton.innerText = "PARAR"
     }
+})
+
+document.addEventListener('DOMContentLoaded', function () {
+    let errorConnection = document.getElementById("error-disconnected")
+
+    fetch('http://' + ip + ':5000/simulating')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok ' + response.statusText);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Server Response:', data)
+            errorConnection.style.display = "none"
+            if (data['simulating'] == "true") simulatingButtonsState()
+            else stoppedButtonsState()
+
+            if (data['articulation'] !== null && data['movement'] !== null && data['endfeel'] !== null && data['mobilization'] !== null && data['executionPoint'] !== null) {
+                articulations.value = data['articulation']
+                movements.value = data['movement']
+                endfeels.value = data['endfeel']
+                mobilization.checked = data['mobilization'] == "true" ? true : false
+                activateExecutionPoint()
+                range.value = data['executionPoint']
+                range.nextElementSibling.querySelector('output').value = data['executionPoint']
+            }
+        })
+        .catch(error => {
+            errorConnection.style.display = "block"
+            console.error('Error:', error);
+        });
 })

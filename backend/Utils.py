@@ -1,4 +1,13 @@
-from Constants import *
+from constants import *
+import queue
+
+# Colas para almacenar los datos
+data_queue = queue.Queue()
+stop_queue = queue.Queue()
+simulating_queue = queue.Queue()
+
+
+## FUNCIONES DE CONVERSION
 
 # Función que pasa de grado a decimal
 def angleToRaw(angle):
@@ -8,6 +17,40 @@ def angleToRaw(angle):
 # Función que pasa de decimal a grado
 def rawToAngle(raw):
     return (float) (raw*0.087891)
+
+# Configura el angulo de entrada a la posicion especifica del servomotor
+def adaptAngleToId(id, angle):
+    if id == DXL1_ID:
+        if -60 <= angle <= 180:
+            angleAdapted = angle + 90
+        else: angleAdapted = "ERROR al insertar el ángulo del hombro, el valor tiene que estar entre -60 y 180"
+    elif id == DXL2_ID:
+        if 0 <= angle <= 180:
+            angleAdapted = angle + 90
+        else: angleAdapted = "ERROR al insertar el ángulo del hombro, el valor tiene que estar entre 0 y 180"
+    elif id == DXL3_ID:
+        if -90 <= angle <= 90:
+            angleAdapted = angle + 180
+        else: angleAdapted = "ERROR al insertar el ángulo del hombro, el valor tiene que estar entre -90 y 90"
+    elif id == DXL4_ID:
+        if -5 <= angle <= 140:
+            angleAdapted = 130 - angle
+        else: angleAdapted = "ERROR al insertar el ángulo del codo, el valor tiene que estar entre -7 y 140"
+    else: angleAdapted = ("ERROR id desconocido")
+
+    return angleAdapted
+
+# Obtener posicion inicial por defecto de cada servomotor
+def getDefaultPosById(id):
+    if (id == DXL1_ID): defaultPos = ID1_POSITION
+    elif (id == DXL2_ID): defaultPos = ID2_POSITION
+    elif (id == DXL3_ID): defaultPos = ID3_POSITION
+    elif (id == DXL4_ID): defaultPos = ID4_POSITION
+    else: raise Exception("ERROR ID desconocido")
+    return defaultPos
+
+
+## FUNCIONES DE CONTROL
 
 # Controlar torque
 def torqueControl(id, portHandler, packetHandler, torqueControl):
@@ -53,6 +96,9 @@ def pidControl(id, portHandler, packetHandler, p, i, d):
     elif dxl_error != 0:
         print("%s" % packetHandler.getRxPacketError(dxl_error))
 
+
+## FUNCIONES DE LECTURA
+
 # Leer posición actual
 def readPresentPosition(portHandler, packetHandler, id):
     try:
@@ -82,6 +128,9 @@ def readPresentTorque(portHandler, packetHandler, id):
         
     return dxl_present_torque
 
+
+## FUNCIONES DE MOVIMIENTO
+
 # Mover servo a un punto
 def moveServoToAngle(id, portHandler, packetHandler, angle):
     torqueControl(id, portHandler, packetHandler, TORQUE_ENABLE)
@@ -105,24 +154,30 @@ def moveServoAddAngle(id, portHandler, packetHandler, angle):
     else:
         print("ERROR Out of range")
 
-# Comprobar que el movimiento se ha realizado
-def moveIsFinished(portHandler, packetHandler, id, goalAngle, statusThreshold):
-        dxl_present_position = readPresentPosition(portHandler, packetHandler, id)
-        while dxl_present_position == None: dxl_present_position = readPresentPosition(portHandler, packetHandler, id)
-
-        # Ajustar para valores que indican un desbordamiento solo codo unico con mov negativo
-        if dxl_present_position > 28672:  # Rango maximo para el positivo
-            dxl_present_position -= 65536
-        if not abs(angleToRaw(goalAngle) - dxl_present_position) > statusThreshold:
-            return True
-        return False
-
 # Añadir parametro a un grupo de sincronizacion de servos
 def addParamGroupSync(groupSyncWrite, id, param):
     dxl_addparam_result = groupSyncWrite.addParam(id, param)
     if dxl_addparam_result != True:
         print("[ID:%03d] groupSyncWrite addparam failed" % id)
         quit()
+
+# Calcular direccion de movimiento del servomotor
+def calculateDirection(actualPosition, previousPosition):
+    if (previousPosition != None):
+        if (actualPosition > previousPosition): direction = UP
+        elif(actualPosition < previousPosition): direction = DOWN
+        else: direction = STOPPED
+    else: direction = UP
+
+    return direction
+
+# Calcular sentido de movimiento del servo (de mayor a menor = NEG, de menor a mayor = POS)
+def calculateWay(angleAdapted, posInicial):
+    # Si la posicion final es menor que la posicion inicial, se suman los correspondientes grados a la final para simular el end feel
+    # Si la posicion final es mayor que la posicion inicial, se restan los correspondientes grados a la final para simular el end feel
+    if (angleToRaw(angleAdapted) - posInicial < 0): way = NEG
+    elif (angleToRaw(angleAdapted) - posInicial > 0): way = POS
+    return way
 
 # Configurar servo en modo multivuelta
 def setMultiturnMode(portHandler, packetHandler, id):
@@ -145,36 +200,7 @@ def setMultiturnMode(portHandler, packetHandler, id):
         error = COMM_ERROR
     return error
 
-# Configura el angulo de entrada a la posicion especifica del servomotor
-def adaptAngleToId(id, angle):
-    if id == DXL1_ID:
-        if -60 <= angle <= 180:
-            angleAdapted = angle + 90
-        else: angleAdapted = "ERROR al insertar el ángulo del hombro, el valor tiene que estar entre -60 y 180"
-    elif id == DXL2_ID:
-        if 0 <= angle <= 180:
-            angleAdapted = angle + 90
-        else: angleAdapted = "ERROR al insertar el ángulo del hombro, el valor tiene que estar entre 0 y 180"
-    elif id == DXL3_ID:
-        if -90 <= angle <= 90:
-            angleAdapted = angle + 180
-        else: angleAdapted = "ERROR al insertar el ángulo del hombro, el valor tiene que estar entre -90 y 90"
-    elif id == DXL4_ID:
-        if -7 <= angle <= 140:
-            angleAdapted = 130 - angle
-        else: angleAdapted = "ERROR al insertar el ángulo del codo, el valor tiene que estar entre -7 y 140"
-    else: angleAdapted = ("ERROR id desconocido")
-
-    return angleAdapted
-
-# Obtener posicion inicial por defecto de cada servomotor
-def getDefaultPosById(id):
-    if (id == DXL1_ID): defaultPos = ID1_POSITION
-    elif (id == DXL2_ID): defaultPos = ID2_POSITION
-    elif (id == DXL3_ID): defaultPos = ID3_POSITION
-    elif (id == DXL4_ID): defaultPos = ID4_POSITION
-    else: raise Exception("ERROR ID desconocido")
-    return defaultPos
+## FUNCIONES DE VALIDACION
 
 # Comprobar si el angulo adaptado es valido 
 def angleAdaptedIsValid(angleAdapted, portHandler, packetHandler, id):
@@ -186,23 +212,17 @@ def angleAdaptedIsValid(angleAdapted, portHandler, packetHandler, id):
             return True
     else: raise Exception(angleAdapted)
 
-# Calcular direccion de movimiento del servomotor
-def calculateDirection(actualPosition, previousPosition):
-    if (previousPosition != None):
-        if (actualPosition > previousPosition): direction = UP
-        elif(actualPosition < previousPosition): direction = DOWN
-        else: direction = STOPPED
-    else: direction = UP
+# Comprobar que el movimiento se ha realizado
+def moveIsFinished(portHandler, packetHandler, id, goalAngle, statusThreshold):
+        dxl_present_position = readPresentPosition(portHandler, packetHandler, id)
+        while dxl_present_position == None: dxl_present_position = readPresentPosition(portHandler, packetHandler, id)
 
-    return direction
-
-# Calcular sentido de movimiento del servo (de mayor a menor = NEG, de menor a mayor = POS)
-def calculateWay(angleAdapted, posInicial):
-    # Si la posicion final es menor que la posicion inicial, se suman los correspondientes grados a la final para simular el end feel
-    # Si la posicion final es mayor que la posicion inicial, se restan los correspondientes grados a la final para simular el end feel
-    if (angleToRaw(angleAdapted) - posInicial < 0): way = NEG
-    elif (angleToRaw(angleAdapted) - posInicial > 0): way = POS
-    return way
+        # Ajustar para valores que indican un desbordamiento solo codo unico con mov negativo
+        if dxl_present_position > 28672:  # Rango maximo para el positivo
+            dxl_present_position -= 65536
+        if not abs(angleToRaw(goalAngle) - dxl_present_position) > statusThreshold:
+            return True
+        return False
 
 def isMotorOff(portHandler, packetHandler):
     presentTorqueValues = array('i')

@@ -1,4 +1,4 @@
-from Utils import *
+from utils import *
 from array import array
 from time import sleep
 
@@ -31,7 +31,7 @@ def endFeelDuro(portHandler, packetHandler, id, angle, activo):
 
                 if (dxl_present_position != None and dxl_previous_position != None): # Si es simulacion pasiva y se ha registrado alguna posicion anterior
                     # Calculo de direccion de movimiento
-                    dirArray.append(calculateDirection(dxl_present_position, dxl_previous_position, actualDirection))
+                    dirArray.append(calculateDirection(dxl_present_position, dxl_previous_position))
                     if (directionFlag == 2): 
                         if(dirArray[0] == dirArray[1] == dirArray[2] == UP): actualDirection = UP
                         elif(dirArray[0] == dirArray[1] == dirArray[2] == DOWN): actualDirection = DOWN
@@ -52,11 +52,12 @@ def endFeelDuro(portHandler, packetHandler, id, angle, activo):
                 isFinished = moveIsFinished(portHandler, packetHandler, id, rawToAngle(defaultPosByID), DXL_MOVING_STATUS_THRESHOLD)
 
         if activo: # Si la simulacion es activa ejecutar la ultima etapa del movimiento
-            sleep(5)
+            sleep(2)
             moveServoToAngle(id, portHandler, packetHandler, rawToAngle(defaultPosByID))
             isFinished = moveIsFinished(portHandler, packetHandler, id, rawToAngle(defaultPosByID), DXL_MOVING_STATUS_THRESHOLD)
             while not isFinished:
                 isFinished = moveIsFinished(portHandler, packetHandler, id, rawToAngle(defaultPosByID), DXL_MOVING_STATUS_THRESHOLD)
+            sleep(2)
 
 # Funcion para simular end feel blandos
 def endFeelBlando(portHandler, packetHandler, id, angle, isActive):
@@ -70,11 +71,13 @@ def endFeelBlando(portHandler, packetHandler, id, angle, isActive):
 
     # Comprobacion sobre el angulo de movimiento obtenido y la posicion por defecto obtenida
     if (angleAdaptedIsValid(angleAdapted, portHandler, packetHandler, id) and defaultPosByID != 0):
-        # 171 equivale a 10 grados en raw. Se usan las medidas en raw para que no haya errores de inexactitud por los grados
+        # 171 equivale a 15 grados en raw. Se usan las medidas en raw para que no haya errores de inexactitud por los grados
         # Calculo del sentido de movimiento para poder definir la posicion de ejecucion del end feel
         way = calculateWay(angleAdapted, defaultPosByID)
         if (way == NEG): posEndFeelBlando = angleToRaw(angleAdapted) + 171
         elif ( way == POS): posEndFeelBlando = angleToRaw(angleAdapted) - 171
+
+        if (id == DXL4_ID and angle < 0): posEndFeelBlando = defaultPosByID
         
         # Definicion del comparator
         comparator = (lambda x, y: x >= y) if way == POS else (lambda x, y: x <= y)
@@ -92,7 +95,7 @@ def endFeelBlando(portHandler, packetHandler, id, angle, isActive):
             if (dxl_present_position != None): # Comprobacion lectura correcta de posicion actual
                 if (not isActive and dxl_previous_position != None): # Si es simulacion pasiva y se ha registrado alguna posicion anterior
                     # Calculo de direccion de movimiento
-                    dirArray.append(calculateDirection(dxl_present_position, dxl_previous_position, actualDirection))
+                    dirArray.append(calculateDirection(dxl_present_position, dxl_previous_position))
                     if (directionFlag == 2): 
                         if(dirArray[0] == dirArray[1] == dirArray[2] == UP): actualDirection = UP
                         elif(dirArray[0] == dirArray[1] == dirArray[2] == DOWN): actualDirection = DOWN
@@ -103,7 +106,7 @@ def endFeelBlando(portHandler, packetHandler, id, angle, isActive):
 
                 if (comparator(dxl_present_position, posEndFeelBlando)): # Comprobacion si el servomotor ha superado la posicion del end feel
                     if(isActive): # Si es simulacion activa
-                        speedControl(id, portHandler, packetHandler, 75)
+                        speedControl(id, portHandler, packetHandler, 50)
                     else: # Si es simulacion pasiva
                         if (not comparator(rawToAngle(dxl_present_position), angleAdapted)): # Si la posicion actual NO es superior al angulo obtenido
                             limitRangeFlag = 0 # Flag para ejecutar solo una vez la activacion del torque maximo en el limite exacto del movimiento
@@ -111,15 +114,20 @@ def endFeelBlando(portHandler, packetHandler, id, angle, isActive):
                                 torqueLimitControl(id, portHandler, packetHandler, 0)
                                 torqueControl(id, portHandler, packetHandler, TORQUE_ENABLE)
                         else: # Si la posicion actual es superior al angulo obtenido
-                            if (actualDirection == UP * way): # Si la direccion es hacia arriba
-                                if (limitRangeFlag == 0):
-                                    torqueControl(id, portHandler, packetHandler, TORQUE_DISABLE) # Se desactiva el torque para volverlo a activar en el limite con el valor maximo
-                                    limitRangeFlag += 1
-                                torqueLimitControl(id, portHandler, packetHandler, MAX_TORQUE_LIMIT)
-                                torqueControl(id, portHandler, packetHandler, TORQUE_ENABLE)
+                            if (actualDirection == UP * way or (actualDirection == STOPPED and id == DXL4_ID)): # Si la direccion es hacia arriba
+                                if (actualDirection == STOPPED and id == DXL4_ID and (angle < 0 or angle > 135)):
+                                    torqueLimitControl(id, portHandler, packetHandler, 150)
+                                    speedControl(id, portHandler, packetHandler, 200)
+                                    moveServoToAngle(id, portHandler, packetHandler, rawToAngle(posEndFeelBlando))
+                                else:
+                                    if (limitRangeFlag == 0):
+                                        torqueControl(id, portHandler, packetHandler, TORQUE_DISABLE) # Se desactiva el torque para volverlo a activar en el limite con el valor maximo
+                                        limitRangeFlag += 1
+                                    torqueLimitControl(id, portHandler, packetHandler, MAX_TORQUE_LIMIT)
+                                    torqueControl(id, portHandler, packetHandler, TORQUE_ENABLE)
                             else: # Si la direccion es hacia abajo
                                 speedControl(id, portHandler, packetHandler, 200)
-                                torqueLimitControl(id, portHandler, packetHandler, 120)
+                                torqueLimitControl(id, portHandler, packetHandler, 150)
                                 moveServoToAngle(id, portHandler, packetHandler, rawToAngle(posEndFeelBlando))
                 else: 
                     # Si es simulacion pasiva
@@ -139,13 +147,14 @@ def endFeelBlando(portHandler, packetHandler, id, angle, isActive):
             while not isFinished:
                 isFinished = moveIsFinished(portHandler, packetHandler, id, rawToAngle(posEndFeelBlando), DXL_MOVING_STATUS_THRESHOLD_ENDFEEL)
 
-            sleep(5)
+            sleep(2)
             # Mover servomotor hacia el punto de inicio
             speedControl(id, portHandler, packetHandler, SPEED_DEFAULT)
             moveServoToAngle(id, portHandler, packetHandler, rawToAngle(defaultPosByID))
             isFinished = moveIsFinished(portHandler, packetHandler, id, rawToAngle(defaultPosByID), DXL_MOVING_STATUS_THRESHOLD)
             while not isFinished:
                 isFinished = moveIsFinished(portHandler, packetHandler, id, rawToAngle(defaultPosByID), DXL_MOVING_STATUS_THRESHOLD)
+            sleep(2)
 
 # Funcion para simular end feel semirrigidos
 def endFeelSemiRig(portHandler, packetHandler, id, angle, isActive):
@@ -200,7 +209,6 @@ def endFeelSemiRig(portHandler, packetHandler, id, angle, isActive):
                 # Comprobacion si la posicion actual supera el limite final
                 if (comparator2(endFeelPoints[5], dxl_present_position)): 
                     if (not isActive): # Si es simulacion pasiva
-                        moveServoToAngle(id, portHandler, packetHandler, rawToAngle(defaultPosByID))
                         torqueLimitControl(id, portHandler, packetHandler, 800)
 
             if (isActive): # Si es simulacion activa
@@ -209,6 +217,7 @@ def endFeelSemiRig(portHandler, packetHandler, id, angle, isActive):
                 isFinished = moveIsFinished(portHandler, packetHandler, id, rawToAngle(defaultPosByID), DXL_MOVING_STATUS_THRESHOLD)
         
         if (isActive): # Si la simulacion es activa ejecutar la ultima etapa del movimiento
+            sleep(1)
             speedControl(id, portHandler, packetHandler, SPEED_DEFAULT)
             torqueLimitControl(id, portHandler, packetHandler, MAX_TORQUE_LIMIT)
             # Mover servomotor hacia el punto de inicio
@@ -216,3 +225,4 @@ def endFeelSemiRig(portHandler, packetHandler, id, angle, isActive):
             isFinished = moveIsFinished(portHandler, packetHandler, id, rawToAngle(defaultPosByID), DXL_MOVING_STATUS_THRESHOLD)
             while not isFinished:
                 isFinished = moveIsFinished(portHandler, packetHandler, id, rawToAngle(defaultPosByID), DXL_MOVING_STATUS_THRESHOLD)
+            sleep(2)

@@ -1,8 +1,16 @@
 import os
-from Utils import *
-from EndFeels import *
-from server import data_queue, stop_queue
+from utils import *
+from endFeels import *
 from dynamixel_sdk import *  # Uses Dynamixel SDK library
+
+simulation = {
+    'articulation': None,
+    'movement': None,
+    'endfeel': None,
+    'mobilization': None,
+    'executionPoint': None,
+    'simulating': 'false'
+}
 
 # Definicion de funcion getch() para obtener la tecla que se pulsa dependiendo del SSOO
 if os.name == 'nt':
@@ -81,11 +89,20 @@ def movPosInicial(portHandler, packetHandler, groupSyncWritePos):
     return error
 
 def executeEndFeelUsingData(portHandler, packetHandler, data): 
+    # Obtencion de los datos enviados por el servidor
     articulation = data["articulation"]
     movement = data["movement"]
     endfeel = data["endfeel"]
     mobilization = data["mobilization"]
     executionPoint = int(data["executionPoint"])
+
+    # Almacenamiento de los datos de simulación en la variable global para poder recuperarlos más tarde
+    global simulation
+    simulation["articulation"] = articulation
+    simulation["movement"] = movement
+    simulation["endfeel"] = endfeel
+    simulation["mobilization"] = mobilization
+    simulation["executionPoint"] = executionPoint
 
     if (articulation == "hombro"):
         match (movement):
@@ -102,16 +119,22 @@ def executeEndFeelUsingData(portHandler, packetHandler, data):
         case "blando": endFeelBlando(portHandler, packetHandler, id, executionPoint, mobilization)
         case "semrig": endFeelSemiRig(portHandler, packetHandler, id, executionPoint, mobilization)
 
-def endfeels_function(portHandler, packetHandler, groupSyncWritePos):
+def endfeelsFunction(portHandler, packetHandler, groupSyncWritePos):
     try:
+        global simulation
         # Obtener datos de la cola 
         try: data = data_queue.get_nowait()
         except: data = None
         if data:
             isSimulating = True
+            simulation["simulating"] = "true"
+            simulating_queue.put(simulation)
             while isSimulating:
                 try:
-                    if stop_queue.get_nowait() == "False": isSimulating = False
+                    if stop_queue.get_nowait() == "False": 
+                        isSimulating = False
+                        simulation["simulating"] = "false"
+                        simulating_queue.put(simulation)
                 except:
                     executeEndFeelUsingData(portHandler, packetHandler, data)
             setDefaultConfiguration(portHandler, packetHandler)
@@ -155,7 +178,7 @@ def executeController():
     error = movPosInicial(portHandler, packetHandler, groupSyncWritePos)
     if (error == COMM_SUCCESS):
         while not isMotorOff(portHandler, packetHandler): 
-            endfeels_function(portHandler, packetHandler, groupSyncWritePos)
+            endfeelsFunction(portHandler, packetHandler, groupSyncWritePos)
 
     # Close port
     portHandler.closePort()

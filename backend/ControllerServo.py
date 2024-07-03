@@ -153,19 +153,5 @@ else:
 
 moveServoToAngle(DXL_ID, portHandler, packetHandler, degree)
 
-
-
-#moveServoToAngle(DXL_ID, portHandler, 0)
-#moveServoToAngle(DXL_ID, portHandler, 90)
-#moveServoToAngle(DXL_ID, portHandler, 45)
-#moveServoToAngle(DXL_ID, portHandler, 180)
-#moveServoToAngle(DXL_ID, portHandler, 270)
-#moveServoToAngle(DXL_ID, portHandler, 359)
-#moveServoToAngle(DXL_ID, portHandler, 0)
-#moveServoAddAngle(DXL_ID, portHandler, 180)
-#moveServoAddAngle(DXL_ID, portHandler, 90)
-#moveServoAddAngle(DXL_ID, portHandler, 90)
-
-
 # Close port
 portHandler.closePort()
